@@ -42,7 +42,7 @@ namespace EntityFramework.Utilities
             {
                 updateSql = string.Join(" = ", update.Split(new string[]{" = "}, StringSplitOptions.RemoveEmptyEntries).Reverse());
             }
-           
+
 
             return string.Format("UPDATE [{0}].[{1}] SET {2} {3}", predicateQueryInfo.Schema, predicateQueryInfo.Table, updateSql, predicateQueryInfo.WhereSql);
         }
@@ -67,7 +67,7 @@ namespace EntityFramework.Utilities
                     {
                         copy.DestinationTableName = "[" + tableName + "]";
                     }
-                    
+
                     copy.NotifyAfter = 0;
 
                     foreach (var i in Enumerable.Range(0, reader.FieldCount))
@@ -107,7 +107,7 @@ namespace EntityFramework.Utilities
                     [{0}] ORIG
                 INNER JOIN
                      [{1}] TEMP
-                ON 
+                ON
                     {2}", tableName, tempTableName, filter, setters);
 
             using (var createCommand = new SqlCommand(str, con))
@@ -120,7 +120,7 @@ namespace EntityFramework.Utilities
                 dCommand.ExecuteNonQuery();
             }
 
-            
+
         }
 
 

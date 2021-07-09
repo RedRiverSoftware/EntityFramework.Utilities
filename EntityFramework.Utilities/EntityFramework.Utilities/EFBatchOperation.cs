@@ -20,8 +20,8 @@ namespace EntityFramework.Utilities
         /// </summary>
         /// <param name="items">The items to insert</param>
         /// <param name="connection">The DbConnection to use for the insert. Only needed when for example a profiler wraps the connection. Then you need to provide a connection of the type the provider use.</param>
-        /// <param name="batchSize">The size of each batch. Default depends on the provider. SqlProvider uses 15000 as default</param>        
-        void InsertAll<TEntity>(IEnumerable<TEntity> items, DbConnection connection = null, int? batchSize = null) where TEntity : class, T; 
+        /// <param name="batchSize">The size of each batch. Default depends on the provider. SqlProvider uses 15000 as default</param>
+        void InsertAll<TEntity>(IEnumerable<TEntity> items, DbConnection connection = null, int? batchSize = null) where TEntity : class, T;
         IEFBatchOperationFiltered<TContext, T> Where(Expression<Func<T, bool>> predicate);
 
 
@@ -66,7 +66,7 @@ namespace EntityFramework.Utilities
             return EFBatchOperation<TContext, T>.For(context, set);
         }
     }
-    public class EFBatchOperation<TContext, T> : IEFBatchOperationBase<TContext, T>, IEFBatchOperationFiltered<TContext, T> 
+    public class EFBatchOperation<TContext, T> : IEFBatchOperationBase<TContext, T>, IEFBatchOperationFiltered<TContext, T>
         where T : class
         where TContext : DbContext
     {
@@ -97,11 +97,15 @@ namespace EntityFramework.Utilities
         /// <param name="batchSize">The size of each batch. Default depends on the provider. SqlProvider uses 15000 as default</param>
         public void InsertAll<TEntity>(IEnumerable<TEntity> items, DbConnection connection = null, int? batchSize = null) where TEntity : class, T
         {
+            var entities = items as TEntity[] ?? items.ToArray();
+            if (!entities.Any()) return;
+
             var con = context.Connection as EntityConnection;
             if (con == null && connection == null)
             {
                 Configuration.Log("No provider could be found because the Connection didn't implement System.Data.EntityClient.EntityConnection");
-                Fallbacks.DefaultInsertAll(context, items);
+                Fallbacks.DefaultInsertAll(context, entities);
+                return;
             }
 
             var connectionToUse = connection ?? con.StoreConnection;
@@ -110,8 +114,31 @@ namespace EntityFramework.Utilities
             if (provider != null && provider.CanInsert)
             {
 
-                var mapping = EntityFramework.Utilities.EfMappingFactory.GetMappingsForContext(this.dbContext);
-                var typeMapping = mapping.TypeMappings[typeof(T)];
+                var mapping = EfMappingFactory.GetMappingsForContext(dbContext);
+
+                TypeMapping typeMapping = null;
+
+                if (mapping.TypeMappings.ContainsKey(typeof(T)))
+                {
+                    typeMapping = mapping.TypeMappings[typeof(T)];
+                }
+                else
+                {
+                    foreach (var baseType in typeof(T).GetBaseTypes())
+                    {
+                        if (mapping.TypeMappings.ContainsKey(baseType))
+                        {
+                            typeMapping = mapping.TypeMappings[baseType];
+                            break;
+                        }
+                    }
+                }
+
+                if (typeMapping == null)
+                {
+                    throw new Exception("Can't map type");
+                }
+
                 var tableMapping = typeMapping.TableMappings.First();
 
                 var properties = tableMapping.PropertyMappings
@@ -126,12 +153,12 @@ namespace EntityFramework.Utilities
                     });
                 }
 
-                provider.InsertItems(items, tableMapping.Schema, tableMapping.TableName, properties, connectionToUse, batchSize);
+                provider.InsertItems(entities, tableMapping.Schema, tableMapping.TableName, properties, connectionToUse, batchSize);
             }
             else
             {
                 Configuration.Log("Found provider: " + (provider == null ? "[]" : provider.GetType().Name) + " for " + connectionToUse.GetType().Name);
-                Fallbacks.DefaultInsertAll(context, items);
+                Fallbacks.DefaultInsertAll(context, entities);
             }
         }
 
@@ -157,9 +184,9 @@ namespace EntityFramework.Utilities
 
                 var properties = tableMapping.PropertyMappings
                     .Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
-                    .Select(p => new ColumnMapping { 
-                        NameInDatabase = p.ColumnName, 
-                        NameOnObject = p.PropertyName, 
+                    .Select(p => new ColumnMapping {
+                        NameInDatabase = p.ColumnName,
+                        NameOnObject = p.PropertyName,
                         DataType = p.DataTypeFull,
                         IsPrimaryKey = p.IsPrimaryKey
                      }).ToList();
@@ -231,7 +258,7 @@ namespace EntityFramework.Utilities
                 var mqueryInfo = provider.GetQueryInformation<T>(mquery);
 
                 var update = provider.GetUpdateQuery(queryInformation, mqueryInfo);
-                
+
                 var parameters = query.Parameters
                     .Concat(mquery.Parameters)
                     .Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name })
@@ -247,6 +274,6 @@ namespace EntityFramework.Utilities
         }
 
 
-     
+
     }
 }

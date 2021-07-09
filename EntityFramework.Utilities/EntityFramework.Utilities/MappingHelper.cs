@@ -1,5 +1,5 @@
 ﻿/// <summary>
-/// Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/ 
+/// Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/
 /// This whole file contains a hack needed because the mapping API is internal pre 6.1 atleast
 /// </summary>
 using System;
@@ -189,11 +189,14 @@ namespace EntityFramework.Utilities
                 if (mapping.EntityTypeMappings.Any(m => m.IsHierarchyMapping))
                 {
                     var withConditions = mapping.EntityTypeMappings.Where(m => m.Fragments[0].Conditions.Any()).ToList();
-                    tableMapping.TPHConfiguration = new TPHConfiguration
-                       {
-                           ColumnName = withConditions.First().Fragments[0].Conditions[0].Column.Name,
-                           Mappings = new Dictionary<Type, string>()
-                       };
+                    if (withConditions.Count > 0)
+                    {
+                        tableMapping.TPHConfiguration = new TPHConfiguration
+                        {
+                            ColumnName = withConditions.First().Fragments[0].Conditions[0].Column.Name,
+                            Mappings = new Dictionary<Type, string>()
+                        };
+                    }
                     foreach (var item in withConditions)
                     {
                         tableMapping.TPHConfiguration.Mappings.Add(
@@ -211,7 +214,7 @@ namespace EntityFramework.Utilities
                     }
                 }
 
-                //Inheriting propertymappings contains duplicates for id's. 
+                //Inheriting propertymappings contains duplicates for id's.
                 tableMapping.PropertyMappings = tableMapping.PropertyMappings.GroupBy(p => p.PropertyName)
                     .Select(g => g.OrderByDescending(outer => g.Count(inner => inner.ForEntityType.IsSubclassOf(outer.ForEntityType))).First())
                     .ToList();

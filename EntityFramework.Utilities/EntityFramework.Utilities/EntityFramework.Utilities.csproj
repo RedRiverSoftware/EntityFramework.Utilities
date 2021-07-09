@@ -66,6 +66,7 @@
     <Compile Include="QueryInformation.cs" />
     <Compile Include="SqlQueryProvider.cs" />
     <Compile Include="SqlStringHelper.cs" />
+    <Compile Include="TypeExtensionMethods.cs" />
     <Compile Include="UpdateSpec.cs" />
   </ItemGroup>
   <ItemGroup>

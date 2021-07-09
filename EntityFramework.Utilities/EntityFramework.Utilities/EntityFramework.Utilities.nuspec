@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>EntityFramework.Utilities</id>
+    <version>1.0.104</version>
+    <authors>Mikael Eliasson</authors>
+    <owners>Mikael Eliasson</owners>
+    <projectUrl>https://github.com/RedRiverSoftware/EntityFramework.Utilities</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Adds batch operations to Entity Framework when using MS Sql server</description>
+    <copyright>Copyright 2021</copyright>
+  </metadata>
+</package>
